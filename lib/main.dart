@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'search_screen.dart';
 import 'favorites_screen.dart';
+import 'api_service.dart';
 
 void main() {
   runApp(const GlowNotesApp());
@@ -127,55 +128,85 @@ class QuoteOfTheDay extends StatefulWidget {
 }
 
 class _QuoteOfTheDayState extends State<QuoteOfTheDay> {
+  late Future<Quote> _quote;
   bool isFavorite = false;
 
   @override
+  void initState() {
+    super.initState();
+    _quote = QuoteService.fetchQuote();
+  }
+
+  void _fetchNewQuote() {
+    setState(() {
+      _quote = QuoteService.fetchQuote();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.all(16.0),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              '"This is the quote of the day!"',
-              style: TextStyle(fontSize: 24.0, fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8.0),
-            const Text(
-              '- Author Name',
-              style: TextStyle(fontSize: 18.0, fontStyle: FontStyle.italic),
-              textAlign: TextAlign.right,
-            ),
-            const SizedBox(height: 16.0),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.share),
-                  onPressed: () {
-                    // Fetch a new quote
-                  },
-                ),
-                const SizedBox(width: 16.0),
-                IconButton(
-                  icon: Icon(
-                    isFavorite ? Icons.favorite : Icons.favorite_border,
-                    color: isFavorite ? Colors.red : Colors.grey,
+    return FutureBuilder<Quote>(
+      future: _quote,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const CircularProgressIndicator();
+        } else if (snapshot.hasError) {
+          return Text('Error: ${snapshot.error}');
+        } else {
+          final quote = snapshot.data!;
+          return Card(
+            margin: const EdgeInsets.all(16.0),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '"${quote.text}"',
+                    style: const TextStyle(fontSize: 24.0, fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.center,
                   ),
-                  onPressed: () {
-                    setState(() {
-                      isFavorite = !isFavorite; // Toggle favorite state
-                    }); // Add to favorites
-                  },
-                ),
-              ],
+                  const SizedBox(height: 8.0),
+                  Text(
+                    '- ${quote.author}',
+                    style: const TextStyle(fontSize: 18.0, fontStyle: FontStyle.italic),
+                    textAlign: TextAlign.right,
+                  ),
+                  const SizedBox(height: 16.0),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.refresh),
+                        onPressed: _fetchNewQuote, // Fetch a new quote
+                      ),
+                      const SizedBox(width: 16.0),
+                      IconButton(
+                        icon: Icon(
+                          isFavorite ? Icons.favorite : Icons.favorite_border,
+                          color: isFavorite ? Colors.red : Colors.grey,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            isFavorite = !isFavorite; // Toggle favorite state
+                          });
+                        },
+                      ),
+                      const SizedBox(width: 16.0),
+                      IconButton(
+                        icon: const Icon(Icons.share),
+                        onPressed: () {
+                          // Implement share functionality here
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ],
-        ),
-      ),
+          );
+        }
+      },
     );
   }
 }
